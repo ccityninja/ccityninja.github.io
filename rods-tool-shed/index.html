@@ -55,6 +55,25 @@ tr:last-child td{border-bottom:0}
 #none{display:none;padding:20px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:12px;margin-top:20px}
 footer{margin:40px 0 30px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line);padding-top:16px}
 mark{background:var(--accent);color:#111;border-radius:3px;padding:0 2px}
+
+.legal{margin:0 0 14px;padding:10px 14px;border:1px solid var(--bad);border-left-width:5px;border-radius:8px;background:#2a1414;color:#ffd0d0;font-size:.95rem}
+.gnote{color:var(--muted);font-size:.9rem;margin:0 0 12px}
+.gctl{display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap}
+.gctl button{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-size:.9rem;cursor:pointer}
+.gctl button:hover{border-color:var(--accent)}
+details.guide{background:var(--card);border:1px solid var(--line);border-radius:10px;margin:8px 0}
+details.guide[open]{border-color:var(--accent)}
+details.guide summary{cursor:pointer;padding:12px 14px;font-weight:600;list-style:none;display:flex;gap:8px;justify-content:space-between;align-items:center}
+details.guide summary::-webkit-details-marker{display:none}
+details.guide summary::after{content:"+";color:var(--accent);font-size:1.3rem;line-height:1}
+details.guide[open] summary::after{content:"\2212"}
+.gbody{padding:0 14px 14px}
+.gbody h4{margin:12px 0 4px;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
+.gbody h4.p{color:var(--accent2)}
+.gbody h4.w{color:var(--warn)}
+.gbody ol,.gbody ul{padding-left:1.3rem}
+.gbody li{margin:4px 0}
+.gbody ul.warn li::marker{color:var(--warn)}
 @media(max-width:520px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -69,9 +88,9 @@ mark{background:var(--accent);color:#111;border-radius:3px;padding:0 2px}
 
 <div class="bar">
   <div class="wrap">
-    <input id="q" type="search" placeholder="Filter: try “spare key”, “ABS”, “Subaru”, “CAN”…" autocomplete="off" aria-label="Filter tools and jobs">
+    <input id="q" type="search" placeholder="Filter tools, jobs and guides: try “AKL”, “ABS bleed”, “Subaru”…" autocomplete="off" aria-label="Filter tools and jobs">
     <nav aria-label="Sections">
-      <a href="#tools">Tools</a><a href="#jobs">Jobs</a><a href="#which">Which tool?</a><a href="#safety">Safety</a>
+      <a href="#tools">Tools</a><a href="#jobs">Jobs</a><a href="#which">Which tool?</a><a href="#guides">How-to guides</a><a href="#safety">Safety</a>
     </nav>
     <div id="count" aria-live="polite"></div>
   </div>
@@ -99,6 +118,14 @@ mark{background:var(--accent);color:#111;border-radius:3px;padding:0 2px}
   </div>
 </section>
 
+<section id="guides">
+  <h2>How-to guides</h2>
+  <div class="legal" role="note"><strong>Legal and ethical:</strong> only program keys for vehicles you own or have proof of ownership or authority for. Don't use these guides for anything else.</div>
+  <p class="gnote">These guides are deliberately generic. Menu names differ by software version, car and region, so follow the on-screen prompts and the tool's vehicle coverage list. Check coverage on the maker's supported list before quoting a job. Where I've named a menu it is indicative only, so trust what your tool shows.</p>
+  <div class="gctl"><button type="button" id="expandAll">Expand all</button><button type="button" id="collapseAll">Collapse all</button></div>
+  <div id="guidelist"></div>
+</section>
+
 <section id="safety">
   <h2>Safety checklist</h2>
   <ul class="check" id="checklist"></ul>
@@ -112,6 +139,7 @@ mark{background:var(--accent);color:#111;border-radius:3px;padding:0 2px}
 </footer>
 </main>
 
+<script src="guides.js"></script>
 <script>
 const TOOLS = [
  {name:"Autel MaxiIM KM100X", tags:["Keys","IMMO"], what:"Key programmer / immobiliser (IMMO) tool for supported vehicles.",
@@ -215,6 +243,25 @@ document.querySelector('#whichtable tbody').innerHTML = WHICH.map(r=>`<tr data-s
 
 document.getElementById('checklist').innerHTML = SAFETY.map((s,i)=>`<li data-s="${esc(s.toLowerCase())}"><input type="checkbox" id="c${i}"><label for="c${i}">${esc(s)}</label></li>`).join('');
 
+
+const li = a => a.map(x=>`<li>${esc(x)}</li>`).join('');
+const byTool = {};
+GUIDES.forEach(g=>{(byTool[g.tool]=byTool[g.tool]||[]).push(g);});
+document.getElementById('guidelist').innerHTML = Object.keys(byTool).map(tool=>`<div class="group" data-gg>
+  <h3>${esc(tool)}</h3>
+  ${byTool[tool].map(g=>`<details class="guide" data-s="${esc((tool+' '+g.title+' '+g.pre.join(' ')+' '+g.steps.join(' ')+' '+g.prob.join(' ')+' '+g.warn.join(' ')+' how-to guide').toLowerCase())}">
+    <summary>${esc(g.title)}</summary>
+    <div class="gbody">
+      <p class="gnote">${esc(MENU_NOTE)}</p>
+      <h4 class="p">Prerequisites</h4><ul>${li(g.pre)}</ul>
+      <h4>Step by step</h4><ol>${li(g.steps)}</ol>
+      <h4>Common problems</h4><ul>${li(g.prob)}</ul>
+      <h4 class="w">Warnings</h4><ul class="warn">${li(g.warn)}</ul>
+    </div></details>`).join('')}
+</div>`).join('');
+document.getElementById('expandAll').onclick = ()=>document.querySelectorAll('details.guide:not(.hidden)').forEach(d=>d.open=true);
+document.getElementById('collapseAll').onclick = ()=>document.querySelectorAll('details.guide').forEach(d=>d.open=false);
+
 const q = document.getElementById('q'), count = document.getElementById('count'), none = document.getElementById('none');
 function apply(){
   const terms = q.value.toLowerCase().trim().split(/\s+/).filter(Boolean);
@@ -224,6 +271,8 @@ function apply(){
     el.classList.toggle('hidden', !ok);
     if(ok) shown++;
   });
+  document.querySelectorAll('details.guide').forEach(d=>{d.open = terms.length>0 && !d.classList.contains('hidden');});
+  document.querySelectorAll('[data-gg]').forEach(g=>g.classList.toggle('hidden', !g.querySelector('details.guide:not(.hidden)')));
   document.querySelectorAll('[data-group]').forEach(g=>g.classList.toggle('hidden', !g.querySelector('.job:not(.hidden)')));
   document.querySelectorAll('section').forEach(s=>{
     const has = s.querySelector('[data-s]:not(.hidden)');
